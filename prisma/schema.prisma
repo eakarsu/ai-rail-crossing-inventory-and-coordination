@@ -1,0 +1,368 @@
+// Generated schema — modeled after beautyhqio conventions.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  active       Boolean @default(true)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(ANALYST)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  ANALYST
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actorName String?
+  action    String
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+model WorkflowAnalysis {
+ id String @id @default(cuid())
+ actorId String
+ workflow String
+ subjectEntity String
+ subjectId String
+ input Json
+ evidence Json
+ evidenceHash String
+ result Json
+ model String
+ receipt String?
+ createdAt DateTime @default(now())
+ @@index([workflow, createdAt])
+}
+model RecordReview {
+ id String @id @default(cuid())
+ actorId String
+ entity String
+ entityId String
+ version String
+ reason String
+ createdAt DateTime @default(now())
+ @@unique([entity, entityId, version, actorId])
+}
+model UsageBucket {
+ id String @id
+ calls Int
+}
+model IssuedCredential {
+ token String @id
+ entity String
+ entityId String
+ version String
+ assertion Json
+ createdAt DateTime @default(now())
+ revokedAt DateTime?
+ @@index([entity, entityId, createdAt])
+}
+
+model DomainArtifact {
+ id String @id @default(cuid())
+ subjectEntity String
+ subjectId String
+ title String
+ content String
+ contentHash String
+ actorId String
+ approvedBy String?
+ createdAt DateTime @default(now())
+ @@index([subjectEntity, subjectId])
+}
+
+model RecordApproval {
+ id String @id
+ version String
+}
+model DomainExecution {
+ id String @id
+ actorId String
+ connectorId String
+ action String
+ subjectEntity String
+ subjectId String
+ version String
+ status String
+ result Json?
+ createdAt DateTime @default(now())
+}
+
+model WorkSession {
+ id String @id @default(cuid())
+ actorId String
+ respondentId String
+ subjectEntity String
+ subjectId String
+ questions Json
+ answers Json
+ currentQuestion String?
+ status String
+ deadline DateTime
+ createdAt DateTime @default(now())
+ @@index([respondentId, createdAt])
+}
+model SessionMedia {
+ id String @id @default(cuid())
+ sessionId String
+ questionId String
+ actorId String
+ contentType String
+ bytes Bytes
+ contentHash String
+ createdAt DateTime @default(now())
+ @@index([sessionId])
+}
+
+model AppSetting {
+ id String @id
+ value Json
+ updatedAt DateTime @updatedAt
+}
+
+model CrossingProgram {
+ id String @id @default(cuid())
+ name String
+ authority String
+ region String
+ coordinator String
+ reportingYear Int
+ reviewAt DateTime
+ status String @default("Draft")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ inverseRailCrossing_crossingProgramId RailCrossing[] @relation("RailCrossing_crossingProgramId")
+ inverseCrossingOwner_crossingProgramId CrossingOwner[] @relation("CrossingOwner_crossingProgramId")
+ inverseWarningDevice_crossingProgramId WarningDevice[] @relation("WarningDevice_crossingProgramId")
+ inverseCrossingInspection_crossingProgramId CrossingInspection[] @relation("CrossingInspection_crossingProgramId")
+ inverseTrafficObservation_crossingProgramId TrafficObservation[] @relation("TrafficObservation_crossingProgramId")
+ inverseCrossingProject_crossingProgramId CrossingProject[] @relation("CrossingProject_crossingProgramId")
+ inverseInventoryChange_crossingProgramId InventoryChange[] @relation("InventoryChange_crossingProgramId")
+ inverseCrossingSubmission_crossingProgramId CrossingSubmission[] @relation("CrossingSubmission_crossingProgramId")
+ inverseOperationalTask_crossingProgramId OperationalTask[] @relation("OperationalTask_crossingProgramId")
+ inverseRuleVersion_crossingProgramId RuleVersion[] @relation("RuleVersion_crossingProgramId")
+ inverseDocumentRequirement_crossingProgramId DocumentRequirement[] @relation("DocumentRequirement_crossingProgramId")
+}
+
+model RailCrossing {
+ id String @id @default(cuid())
+ name String
+ crossingNumber String
+ road String
+ railroad String
+ latitude Float
+ longitude Float
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedCrossingProgramId CrossingProgram @relation("RailCrossing_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+ inverseCrossingOwner_railCrossingId CrossingOwner[] @relation("CrossingOwner_railCrossingId")
+ inverseWarningDevice_railCrossingId WarningDevice[] @relation("WarningDevice_railCrossingId")
+ inverseCrossingInspection_railCrossingId CrossingInspection[] @relation("CrossingInspection_railCrossingId")
+ inverseTrafficObservation_railCrossingId TrafficObservation[] @relation("TrafficObservation_railCrossingId")
+ inverseCrossingProject_railCrossingId CrossingProject[] @relation("CrossingProject_railCrossingId")
+ inverseInventoryChange_railCrossingId InventoryChange[] @relation("InventoryChange_railCrossingId")
+ inverseCrossingSubmission_railCrossingId CrossingSubmission[] @relation("CrossingSubmission_railCrossingId")
+}
+
+model CrossingOwner {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ party String
+ responsibility String
+ agreementReference String
+ effectiveAt DateTime
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("CrossingOwner_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("CrossingOwner_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model WarningDevice {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ deviceType String
+ serialNumber String
+ installedAt DateTime
+ testedAt DateTime
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("WarningDevice_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("WarningDevice_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model CrossingInspection {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ inspectedAt DateTime
+ inspector String
+ observations String
+ nextDueAt DateTime
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("CrossingInspection_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("CrossingInspection_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model TrafficObservation {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ observedAt DateTime
+ roadVehicles Int
+ trains Int
+ method String
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("TrafficObservation_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("TrafficObservation_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model CrossingProject {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ scope String
+ roadAuthority String
+ railAuthority String
+ budgetCents Int
+ dueAt DateTime
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("CrossingProject_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("CrossingProject_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model InventoryChange {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ fieldName String
+ previousValue String
+ proposedValue String
+ sourceReference String
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("InventoryChange_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("InventoryChange_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model CrossingSubmission {
+ id String @id @default(cuid())
+ title String
+ railCrossingId String
+ submittedAt DateTime
+ submitter String
+ submissionReference String
+ receipt String?
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedRailCrossingId RailCrossing @relation("CrossingSubmission_railCrossingId", fields: [railCrossingId], references: [id], onDelete: Restrict)
+ linkedCrossingProgramId CrossingProgram @relation("CrossingSubmission_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model OperationalTask {
+ id String @id @default(cuid())
+ title String
+ owner String
+ priority String
+ startAt DateTime
+ dueAt DateTime
+ done Boolean
+ notes String?
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedCrossingProgramId CrossingProgram @relation("OperationalTask_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model RuleVersion {
+ id String @id @default(cuid())
+ title String
+ jurisdiction String
+ version String
+ effectiveAt DateTime
+ expiresAt DateTime?
+ sourceUrl String
+ requirementText String
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedCrossingProgramId CrossingProgram @relation("RuleVersion_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
+
+model DocumentRequirement {
+ id String @id @default(cuid())
+ title String
+ category String
+ requiredBy DateTime
+ sourceReference String
+ evidenceReference String?
+ reviewNotes String?
+ status String @default("Draft")
+ crossingProgramId String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([createdAt])
+ @@index([crossingProgramId])
+ linkedCrossingProgramId CrossingProgram @relation("DocumentRequirement_crossingProgramId", fields: [crossingProgramId], references: [id], onDelete: Restrict)
+}
